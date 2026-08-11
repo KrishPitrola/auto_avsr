@@ -3,10 +3,10 @@
 
 # Copyright 2023 Imperial College London (Pingchuan Ma)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 import torch
+from matplotlib import container
 import torchaudio
-import torchvision
+
 
 
 class AVSRDataLoader:
@@ -47,7 +47,9 @@ class AVSRDataLoader:
         return waveform, sample_rate
 
     def load_video(self, data_filename):
-        return torchvision.io.read_video(data_filename, pts_unit="sec")[0].numpy()
+        container = av.open(data_filename)
+        frames = [f.to_ndarray(format="rgb24") for f in container.decode(video=0)]
+        return np.stack(frames)
 
     def audio_process(self, waveform, sample_rate, target_sample_rate=16000):
         if sample_rate != target_sample_rate:

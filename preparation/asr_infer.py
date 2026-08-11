@@ -73,7 +73,7 @@ label_filename = os.path.join(
 os.makedirs(os.path.dirname(label_filename), exist_ok=True)
 print(f"Directory {os.path.dirname(label_filename)} created")
 
-f = open(label_filename, "w")
+f = open(label_filename, "w", encoding="utf-8")
 
 # Load ASR model
 if args.gpu_type != "cuda" or "mps":
@@ -99,12 +99,15 @@ for filename in tqdm(files_to_process):
 
     # Write transcript to a text file
     if transcript:
-        with open(dst_filename, "w") as k:
+        with open(dst_filename, "w", encoding="utf-8") as k:
             k.write(f"{transcript}")
 
-        trim_vid_data = torchvision.io.read_video(
-            filename[:-4] + ".mp4", pts_unit="sec"
-        )[0]
+        container = av.open(filename)
+        all_frames = [f.to_ndarray(format="rgb24") for f in container.decode(video=0)]
+        fps = container.streams.video[0].average_rate
+        start_idx = int(start * fps)
+        end_idx = int(end * fps)
+        trim_vid_data = torch.tensor(np.stack(all_frames[start_idx:end_idx]))
         basename = os.path.relpath(
             filename, start=os.path.join(args.root_dir, args.dataset)
             )[:-4]+".mp4"

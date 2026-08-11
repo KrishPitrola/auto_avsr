@@ -3,18 +3,21 @@
 
 # Copyright 2023 Imperial College London (Pingchuan Ma)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-import os
 import torch
+import av
+import numpy as np
+import os
 import torchaudio
-import torchvision
+
 
 
 def load_video(path):
     """
     rtype: torch, T x C x H x W
     """
-    vid = torchvision.io.read_video(path, pts_unit="sec", output_format="THWC")[0]
+    container = av.open(path)
+    frames = [f.to_ndarray(format="rgb24") for f in container.decode(video=0)]
+    vid = torch.tensor(np.stack(frames))    
     vid = vid.permute((0, 3, 1, 2))
     return vid
 
@@ -52,7 +55,7 @@ class AVDataset(torch.utils.data.Dataset):
 
     def load_list(self, label_path):
         paths_counts_labels = []
-        for path_count_label in open(label_path).read().splitlines():
+        for path_count_label in open(label_path, encoding="utf-8").read().splitlines():
             dataset_name, rel_path, input_length, token_id = path_count_label.split(",")
             paths_counts_labels.append((dataset_name, rel_path, int(input_length), torch.tensor([int(_) for _ in token_id.split()])))
         return paths_counts_labels
